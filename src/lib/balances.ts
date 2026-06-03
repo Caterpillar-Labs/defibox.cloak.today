@@ -11,6 +11,12 @@ function visit(value: unknown, token: DefiboxToken, found: bigint[]): void {
   if (found.length > 0) return;
   if (value == null) return;
 
+  if (typeof value === "string") {
+    const parsed = parseFlatTokenBalance(value, token);
+    if (parsed != null) found.push(parsed);
+    return;
+  }
+
   if (Array.isArray(value)) {
     for (const entry of value) visit(entry, token, found);
     return;
@@ -35,6 +41,23 @@ function visit(value: unknown, token: DefiboxToken, found: bigint[]): void {
     }
 
     for (const nested of Object.values(obj)) visit(nested, token, found);
+  }
+}
+ 
+function parseFlatTokenBalance(value: string, token: DefiboxToken): bigint | null {
+  const atIndex = value.lastIndexOf("@");
+  if (atIndex <= 0) return null;
+
+  const quantity = value.slice(0, atIndex).trim();
+  const contract = value.slice(atIndex + 1).trim();
+  if (contract !== token.contract) return null;
+
+  try {
+    const parsed = parseAssetQuantity(quantity);
+    const symbolCode = token.symbol.split(",")[1];
+    return parsed.symbol === symbolCode ? parsed.units : null;
+  } catch {
+    return null;
   }
 }
 

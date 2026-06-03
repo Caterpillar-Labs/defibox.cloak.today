@@ -298,6 +298,16 @@ h2 {
   background: #2b3141;
 }
 
+.walletBox .secondary + .secondary {
+  margin-top: 10px;
+}
+
+.secondary.danger {
+  color: #2b3141;
+  background: #fff;
+  border: 1px solid #d9dde7;
+}
+
 .ghost {
   padding: 9px 12px;
   color: #2b3141;

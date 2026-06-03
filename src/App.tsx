@@ -3,7 +3,7 @@ import { APP_CONFIG } from "./config";
 import { fetchDefiboxConfig, fetchDefiboxPairs } from "./lib/chainApi";
 import { getFeeBps, isTradablePair, parsePair, quoteDirectSwap, type DefiboxConfigRow, type PairSide, type ParsedPair, type QuoteResult } from "./lib/defibox";
 import { compactAsset, decimalRatio, formatAsset, parseInputAmountToUnits, unitsToHumanTrimmed } from "./lib/eosioAsset";
-import { buildSwapZActions, connectCloakWallet, refreshAllBalances, submitSwap, type WalletState } from "./lib/zeos";
+import { buildSwapZActions, connectCloakWallet, disconnectCloakWallet, refreshAllBalances, submitSwap, type WalletState } from "./lib/zeos";
 import { findBalanceInUnknownPayload } from "./lib/balances";
 
 type LoadState = "idle" | "loading" | "ready" | "error";
@@ -101,7 +101,12 @@ export default function App() {
     setWalletBusy(true);
     setWalletError(null);
     try {
-      const connected = await connectCloakWallet();
+      const connected = await connectCloakWallet(() => {
+        setWallet({ session: null, handle: null });
+        setBalancesPayload(null);
+        setTxResult(null);
+        setWalletError("ZEOS Link connection closed.");
+      });
       setWallet(connected);
       const balances = await refreshAllBalances(connected.session!);
       setBalancesPayload(balances);
@@ -122,6 +127,24 @@ export default function App() {
     } catch (e) {
       setWalletError(toErrorMessage(e));
     } finally {
+      setWalletBusy(false);
+    }
+  }
+
+  async function disconnectWallet() {
+    if (!wallet.session) return;
+
+    setWalletBusy(true);
+    setWalletError(null);
+
+    try {
+      await disconnectCloakWallet(wallet.session);
+    } catch (e) {
+      console.warn("CLOAK wallet logout failed; clearing local UI state anyway.", e);
+    } finally {
+      setWallet({ session: null, handle: null });
+      setBalancesPayload(null);
+      setTxResult(null);
       setWalletBusy(false);
     }
   }
@@ -162,7 +185,7 @@ export default function App() {
         setTxResult("Swap submitted successfully.");
         setTimeout(() => void refreshBalances(), 6000);
       } else {
-        throw new Error(typeof result.error === "string" ? result.error : JSON.stringify(result.error));
+        throw new Error(toErrorMessage(result.error ?? result.detail ?? result));
       }
     } catch (e) {
       setTxResult(`Swap failed: ${toErrorMessage(e)}`);
@@ -175,9 +198,8 @@ export default function App() {
     <main className="page">
       <section className="hero">
         <div>
-          <p className="eyebrow">CLOAK-only demo</p>
-          <h1>Defibox Swap</h1>
-          <p className="subtle">Direct-pair swaps through swap.defi. No routing, no LP, no auth tokens.</p>
+          <h1>CLOAKed Defibox Swap</h1>
+          <p className="subtle">Direct-pair swaps through <code>swap.defi</code> with full privacy. Because #PrivacyMatters.</p>
         </div>
         <div className="walletBox">
           <div className="walletStatus">
@@ -187,6 +209,11 @@ export default function App() {
           <button className="secondary" disabled={walletBusy} onClick={wallet.session ? refreshBalances : connectWallet}>
             {walletBusy ? "Working..." : wallet.session ? "Refresh balances" : "Connect CLOAK"}
           </button>
+          {wallet.session && (
+            <button className="secondary danger" disabled={walletBusy || swapBusy} onClick={disconnectWallet}>
+              Disconnect
+            </button>
+          )}
           {walletError && <p className="errorText">{walletError}</p>}
         </div>
       </section>
