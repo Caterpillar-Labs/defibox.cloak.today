@@ -1,5 +1,5 @@
 import ZSession from "zeos-link";
-import type { ZeosLinkBalancesResult, ZeosLinkTransactResult, ZeosLinkZAction } from "zeos-link";
+import type { BalancesResult, TransactResult, ZAction } from "zeos-link";
 import { APP_CONFIG } from "../config";
 import { formatAsset } from "./eosioAsset";
 import type { QuoteResult } from "./defibox";
@@ -27,7 +27,7 @@ export async function connectCloakWallet(onClose?: () => void): Promise<WalletSt
   return { session, handle: session.handle() };
 }
 
-export async function refreshAllBalances(session: ZSessionLike): Promise<ZeosLinkBalancesResult> {
+export async function refreshAllBalances(session: ZSessionLike): Promise<BalancesResult> {
   return await session.allBalances(true, false, false);
 }
 
@@ -38,7 +38,7 @@ export async function disconnectCloakWallet(session: ZSessionLike): Promise<void
 export function buildSwapZActions(params: {
   quote: QuoteResult;
   amountIn: bigint;
-}): ZeosLinkZAction[] {
+}): ZAction[] {
   const { quote, amountIn } = params;
   const inputQuantity = formatAsset(amountIn, quote.inputToken.precision, quote.inputToken.code);
   const outputQuantity = formatAsset(quote.amountOut, quote.outputToken.precision, quote.outputToken.code);
@@ -74,6 +74,6 @@ export function buildSwapZActions(params: {
   ];
 }
 
-export async function submitSwap(session: ZSessionLike, zactions: ZeosLinkZAction[]): Promise<ZeosLinkTransactResult> {
+export async function submitSwap(session: ZSessionLike, zactions: ZAction[]): Promise<TransactResult> {
   return await session.transact(zactions, true, true, { timeoutMs: 120_000 });
 }
