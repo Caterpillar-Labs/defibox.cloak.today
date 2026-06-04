@@ -22,9 +22,10 @@ The goal is intentionally narrow: show a clean, readable example of private CLOA
 * no add/remove liquidity
 * no pool creation
 * no Anchor / TokenPocket / native EOSIO wallet support
-* no arbitrary EOSIO action calls from CLOAK transactions
+* no auth-token based private dApp actions
+* no generic public EOSIO action calls from CLOAK transactions
 
-LP deposit/withdrawal is intentionally out of scope for this version. Defibox liquidity deposit requires an explicit `swap.defi::deposit(owner, pair_id)` action after the two token transfers. CLOAK arbitrary public action calls are not supported by this demo yet.
+LP deposit/withdrawal is intentionally out of scope for this version. Defibox liquidity deposit requires an explicit `swap.defi::deposit(owner, pair_id)` action after the two token transfers. `zeos-link` supports CLOAK zactions, not Anchor/WharfKit-style `{ actions: [...] }` transactions, and Defibox is not integrated with CLOAK auth-token private action handling.
 
 ## Requirements
 

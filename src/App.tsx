@@ -5,6 +5,7 @@ import { getFeeBps, isTradablePair, parsePair, quoteDirectSwap, type DefiboxConf
 import { compactAsset, decimalRatio, formatAsset, parseInputAmountToUnits, unitsToHumanTrimmed } from "./lib/eosioAsset";
 import { buildSwapZActions, connectCloakWallet, disconnectCloakWallet, refreshAllBalances, submitSwap, type WalletState } from "./lib/zeos";
 import { findBalanceInUnknownPayload } from "./lib/balances";
+import { DefiboxLogo } from "./components/DefiboxLogo";
 
 type LoadState = "idle" | "loading" | "ready" | "error";
 
@@ -198,7 +199,13 @@ export default function App() {
     <main className="page">
       <section className="hero">
         <div>
-          <h1>CLOAKed Defibox Swap</h1>
+          <h1>
+            <DefiboxLogo
+              width={64}
+              style={{ display: "inline-block", verticalAlign: "middle" }}
+            />
+            Defibox CLOAKed Swap
+          </h1>
           <p className="subtle">Direct-pair swaps through <code>swap.defi</code> with full privacy. Because #PrivacyMatters.</p>
         </div>
         <div className="walletBox">
