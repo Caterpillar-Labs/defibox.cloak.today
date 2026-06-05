@@ -1,0 +1,213 @@
+---
+description: Multi-thread feature workflow - generate worker prompts in .cursor/feature-prompts, gates, cleanup when done
+alwaysApply: true
+---
+
+# Feature Thread Workflow (Multi-Worker Prompts)
+
+Use this workflow when the user starts a thread about a **feature**, **refactor**, or **large scoped task** (frontend, Defibox integration, tests). The user may run **one phase per worker thread** before final implementation.
+
+Companion rule: `frontend-engineering-partner.mdc` (output formats, engineering standards).
+
+## Partner mindset (mandatory in every path)
+
+This workflow controls **how work is split and gated** (prompt pack, phases, cleanup). It does **not** relax **`frontend-engineering-partner.mdc`**.
+
+- **Full path** (Thread 0 → phases → implementation): still challenge scope, split, and assumptions in Thread 0 and in each phase reply.
+- **Simplified path** (skip pack, direct impl, trivial fix): same no-yes-man bar - frame risks, push back if the ask is wrong, propose alternatives before coding.
+
+Artifacts differ; **reasoning quality does not.**
+
+## Auto-start (new thread - default behavior)
+
+**On the first user message of a new thread**, if the user describes a **feature**, **refactor**, **epic**, or **multi-step task** - even briefly (name + context, affected files, goal) - treat it as **Thread 0 (planning)** unless clearly trivial.
+
+**Do this automatically without waiting for** "génère le prompt pack", "battle plan", or "workflow":
+
+1. Problem-framing (short chat reply).
+2. **Create or refresh** `.cursor/feature-prompts/<feature-slug>/` with full phase files (`00-context.md`, `phase-NN-*.md`, `99-definition-of-done.md`, `README.md`).
+3. Tell the user: folder path, phase order, **first file to paste** into the next worker thread, and the gate before coding.
+
+**User can start with minimal input**, for example:
+
+- Feature name + 2-3 sentences of context
+- List of files / areas (`src/lib/defibox.ts`, `src/lib/zeos.ts`)
+- Paste of an existing spec
+
+Infer `<feature-slug>` from the title (kebab-case). If an existing pack folder matches the same feature, **update** it instead of duplicating.
+
+**Do not write application code** in Thread 0 unless the user explicitly says to implement now (e.g. "code phase 3", "implémente").
+
+### Skip auto-start (code immediately)
+
+Only when **all** apply:
+
+- Single file, fully specified change (e.g. "fix typo in X line 42")
+- User says **no prompt pack** / **skip workflow** / **just fix it**
+- Pure question with no delivery intent ("how does X work?") **and** no audit/quality-review keywords and **no** file or domain scope
+
+When unsure, **default to generating the prompt pack**.
+
+## Audit workflow (multi-worker, read-only)
+
+Use this path when the user asks for a **code quality audit**, **LOC / volumetry review**, **optimization / reduction** analysis, or **review codebase** with a **scope** (whole demo, a lib module, or named paths). **Audit ≠ feature delivery:** phases produce **reports and a backlog**, not application diffs (unless the user opens a separate implementation thread).
+
+Companion: **Audit checklist** in `frontend-engineering-partner.mdc`; template: `.cursor/templates/audit-phase-prompt.template.md`.
+
+### Auto-start audit (Thread 0)
+
+**On the first message** of a new thread, if the user explicitly requests an audit or quality/optimization review with a **scope** - treat as **Audit Thread 0**:
+
+1. Problem-framing (scope, risks, what "done" means for the audit).
+2. **Create or refresh** `.cursor/feature-prompts/<audit-slug>/` with `packType: audit` in `README.md`.
+3. Reply with folder path, phase order, **first phase file to paste**, and gate before the next phase.
+
+**Slug:** prefer `audit-<scope>` (e.g. `audit-defibox-lib`, `audit-app-refactor`). Reuse/update an existing matching folder instead of duplicating.
+
+**Do not** write application code in Audit Thread 0. **Do not** deliver a single monolithic audit report when the scope spans **multiple domains or ~8+ files** - split into phased worker prompts first.
+
+### Audit pack contents
+
+| File | Purpose |
+|------|---------|
+| `README.md` | `packType: audit`, goal, phase checklist, gates |
+| `00-context.md` | Scope, rubric, invariants, baseline LOC, out-of-scope (no impl in audit phases) |
+| `phase-NN-<slug>.md` | One **read-only** worker prompt per domain/layer |
+| `99-definition-of-done.md` | All phases reported, consolidated backlog, finding IDs |
+| `reports/phase-NN-report.md` | Optional: worker writes the phase deliverable here |
+
+Each audit phase prompt must state:
+
+- **Objective:** findings matrix + LOC table for that scope only
+- **Out of scope:** code changes, commit, later domains
+- **Deliverable:** LOC table (>300 / >500 lines), findings (ID, severity, path, recommendation), optimization candidates (merge/extract/delete, risk, LOC delta estimate)
+- **Validation:** read-only commands only (`wc`, grep) - no lint fixes
+
+Use template: `.cursor/templates/audit-phase-prompt.template.md`
+
+### Audit phase gates
+
+Advance to phase N+1 only when:
+
+- Current phase acceptance criteria are met (report complete, every finding cites a path)
+- User approves (`phase validée`, `go phase N`, or equivalent)
+
+**Final audit phase** produces consolidated backlog **P0 / P1 / P2** and suggested **`feature-*` implementation packs** referencing finding IDs.
+
+### After audit: implementation
+
+Refactors happen in **separate** `feature-*` packs (or explicit "implémente" threads), not inside audit phases. Implementation threads still use second validation round and diff stats per `frontend-engineering-partner.mdc`.
+
+### Audit cleanup
+
+Same as features: when the backlog is accepted and no further audit work remains, delete `.cursor/feature-prompts/<audit-slug>/`. Do not delete while phases are in progress unless the user cancels.
+
+## When to activate (manual triggers still apply)
+
+Also activate when the user:
+
+- Asks for a battle plan, phased refactor, or worker prompts
+- References `.cursor/feature-prompts/` or pastes a phase prompt
+- Says `génère le prompt pack` or equivalent
+
+## Temporary prompt storage
+
+All generated phase prompts live under:
+
+```
+.cursor/feature-prompts/<feature-slug>/
+```
+
+- `<feature-slug>`: kebab-case, short, unique (e.g. `extract-swap-hook`, `token-search-ui`)
+- This directory is **gitignored** (local worker artifacts only)
+- Do **not** commit prompt packs; do **not** push them
+
+### Required files per feature
+
+| File | Purpose |
+|------|---------|
+| `README.md` | Index: goal, status, phase checklist, paths, gates |
+| `00-context.md` | Problem, invariants, out-of-scope, assumptions, repo pointers |
+| `phase-NN-<slug>.md` | One **self-contained** worker prompt per phase (NN = 01, 02, …) |
+| `99-definition-of-done.md` | Global DoD, test matrix, cleanup trigger |
+
+Use template: `.cursor/templates/feature-phase-prompt.template.md`
+
+## Generation workflow (Thread 0 - planning)
+
+When framing a non-trivial feature:
+
+1. **Problem-Framing** (see `frontend-engineering-partner.mdc`) - do not code yet unless user explicitly asks to implement now.
+2. **Create** `.cursor/feature-prompts/<feature-slug>/` and write `00-context.md`, phases, `99-definition-of-done.md`, `README.md`.
+3. **Split phases** so each worker thread has one bounded objective; sequence dependencies in README.
+4. **Reply to user** with slug, folder path, phase list, next file to paste, gates.
+
+Update `README.md` phase checkboxes when the user confirms a phase is done (`[x]`).
+
+## Phase gates (do not skip)
+
+Advance to phase N+1 or implementation only when:
+
+- Current phase acceptance criteria are met
+- User explicitly approves (`go phase N`, `phase validée`, or equivalent)
+- No open blocking gaps from review-only phases
+
+## Second validation round (implementation / final phase)
+
+After code and **first-pass** tests (`npm run build`, manual smoke), the agent **must** run the **Second validation round** from `frontend-engineering-partner.mdc` before commit prep.
+
+**Blocking gates before "feature done"** (all required):
+
+- [ ] Requirement trace complete
+- [ ] `npm run build` pass
+- [ ] Diff stats reported
+- [ ] If a process gap was found: **rules evolution** applied (`.cursor/rules/` updated)
+
+## Response formats (chat)
+
+### Thread 0 - planning / prompt generation
+
+1. Recommendation (phase split, risks)
+2. Pushback / risks
+3. Assumptions and unknowns
+4. Alternatives / tradeoffs
+5. **Prompt pack created** - path, next file to run, gate
+
+### Worker phase thread (review / audit / single phase)
+
+1. Phase objective (restated)
+2. Findings or deliverable
+3. Acceptance criteria status (checkboxes)
+4. Blockers / gaps
+5. **Next step** - update README checkbox; which prompt file is next
+
+### Audit phase thread (read-only)
+
+1. Phase objective (restated)
+2. **LOC table** and **findings matrix** (with IDs)
+3. **Optimization candidates** (risk + LOC estimate)
+4. Acceptance criteria status
+5. **Next step** - no application diff
+
+### Final implementation thread
+
+Follow **Scoped code work** format in `frontend-engineering-partner.mdc`, including second validation round, diff stats, and **Git Workflow (human gate)** with `npm run build` + `Build: pass`.
+
+## Cleanup (mandatory when feature is done)
+
+When the feature is **integrated** or the user says there is **nothing left to do**:
+
+1. Confirm with user if ambiguous; if clearly done, proceed.
+2. **Delete** the entire directory `.cursor/feature-prompts/<feature-slug>/`.
+3. If no other features remain under `.cursor/feature-prompts/`, leave only the root `README.md`.
+4. Tell the user the folder was removed and the feature pack is closed.
+
+Do **not** delete prompt packs while phases are still in progress unless the user explicitly cancels the feature.
+
+## Demo invariants (reference for prompt packs)
+
+- CLOAK wallet via `zeos-link` only (unless user expands scope)
+- Direct Defibox pair swaps on `swap.defi` - no router paths by default
+- BigInt-only asset math
+- Exact-output CLOAK `mint` requirement
+- See `.cursor/knowledge/project.md` for full constraints

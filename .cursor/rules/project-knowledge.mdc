@@ -1,0 +1,117 @@
+---
+description: Living project knowledge - architecture, deps, structure. Read and update on every change.
+alwaysApply: true
+---
+
+> **Maintenance:** After any change to architecture, dependencies, directory layout, lib modules, blockchain integration, or conventions, update `.cursor/knowledge/project.md` and sync this file before finishing. When setup, scripts, env vars, or git hygiene change, also update root `README.md` (see **README maintenance** in `frontend-engineering-partner.mdc`).
+
+# Defibox CLOAK Swap Demo - Project Knowledge
+
+> **Last updated:** 2026-06-05 (initial `.cursor/` setup)
+
+## Multi-thread feature workflow
+
+- Rule: `.cursor/rules/feature-thread-workflow.mdc` (always on; **auto-starts** on new thread when user gives feature + context)
+- Temporary worker prompts: `.cursor/feature-prompts/<feature-slug>/` (gitignored; delete when feature is done)
+- Phase template: `.cursor/templates/feature-phase-prompt.template.md`
+
+## Audit workflow (multi-worker, read-only)
+
+- Rule: **Audit workflow** in `.cursor/rules/feature-thread-workflow.mdc` (**auto-starts** on audit / quality / LOC / optimize-scope requests)
+- Packs: `.cursor/feature-prompts/audit-<scope>/` with `packType: audit` in README
+- Phase template: `.cursor/templates/audit-phase-prompt.template.md`
+- Checklist: **Audit checklist** in `frontend-engineering-partner.mdc` (layering, duplication, dead code; no app diffs in audit phases)
+- After audit: implementation via separate `feature-*` packs referencing finding IDs
+- **Second validation round:** mandatory pass; diff stats - `frontend-engineering-partner.mdc`
+- **Rules evolution:** repeatable gaps → update `.cursor/rules/` in same session - **Rules evolution** in `frontend-engineering-partner.mdc`
+- **Search-first / no boilerplate:** see **Search-first, minimal code, no duplication** in `frontend-engineering-partner.mdc`
+- **File size >500 lines:** split/refactor only when pertinent (cohesive long files are OK) - see `frontend-engineering-partner.mdc` → **File size (>500 lines)**
+- **Questions vs implementation:** user questions default to explanation only - no code unless they ask for delivery - see **Questions vs implementation** in `frontend-engineering-partner.mdc`
+- **Git staging:** always `git add` changes under `.cursor/` when touched; **split commits by feature** when diff is large - see **Git Workflow (human gate)** in `frontend-engineering-partner.mdc`
+- **Same reasoning bar:** full feature workflow or simplified path - always challenge ideas, no yes-man - see **Same reasoning bar (all workflows)** in `frontend-engineering-partner.mdc`
+
+## Git workflow
+
+- Rule: **Git Workflow (human gate)** in `frontend-engineering-partner.mdc`
+- No automatic push or commit
+- **Build gate (blocking):** run `npm run build` and get `Build: pass` in the session before any `git commit` or `git push` on application code; fix failures first
+- End of implementation: stage with selective `git add`, propose commit message + breakdown; user validates before commit/push
+- **Feature-scoped commits:** when ~8+ files or 2+ domains - split into one commit per feature/domain; sequential commits on user request; never default to one monolithic commit
+
+## Stack
+
+| Layer | Technology |
+|-------|------------|
+| Runtime | Node.js 20+ |
+| Framework | Vite 6, React 19, TypeScript 5 |
+| Styling | Plain CSS (`src/styles.css`) |
+| Blockchain | `zeos-link` (CLOAK / ZSession only) |
+| Chain API | EOS HTTP API via `src/lib/chainApi.ts` |
+| Dev | Vite HTTPS on `https://127.0.0.1:5173` |
+
+### package.json scripts
+
+- `dev` - Vite dev server (HTTPS)
+- `build` - `tsc --noEmit && vite build`
+- `preview` - production preview
+
+### Key dependencies
+
+`react`, `react-dom`, `zeos-link`, `vite`, `typescript`
+
+## Directory layout
+
+```
+src/
+  main.tsx              React entry
+  App.tsx               Demo UI and page state
+  config.ts             Env-backed config
+  styles.css            Global styles
+  components/           Reusable UI (render only)
+  components/dropdown/  Dropdown.tsx (searchable Cloak select)
+  types/dropdownTypes.ts
+  constants/connectedInputGroupConstants.ts
+  lib/                  Business logic (no React)
+    chainApi.ts         Defibox table reads
+    defibox.ts          Pair parsing, BigInt quotes
+    eosioAsset.ts       Asset helpers
+    balances.ts         CLOAK balance parsing
+    zeos.ts             Wallet connect + swap zactions
+```
+
+## Architecture rules
+
+- **`src/lib/`** - chain reads, Defibox math, zeos-link; no React
+- **`src/components/`** - render only
+- **`src/App.tsx`** - orchestration; extract hooks when logic grows
+- Prefer **`src/hooks/`** and **`src/types/`** only when the demo outgrows a single page file
+
+## Blockchain integration
+
+### CLOAK-only wallet
+
+- Connect via `zeos-link` / ZEOS Link WebSocket (`VITE_ZEOS_LINK_URL`)
+- Swap: `spend` + `mint` zactions built in `src/lib/zeos.ts`
+- **No** Anchor / TokenPocket / WharfKit in this repo
+
+### Defibox direct swap
+
+- Contract: `swap.defi` (env: `VITE_SWAP_CONTRACT`)
+- Tables: `config`, `pairs`
+- Memo: `swap,<min_out_units>,<pair_id>` - direct pair only, no routing
+- **BigInt-only** asset math in `src/lib/defibox.ts` and `src/lib/eosioAsset.ts`
+- CLOAK `mint` must use exact predicted output quantity
+
+### Out of scope (unless user explicitly expands)
+
+- Router / multi-hop swaps
+- LP deposit, withdraw, pool creation
+- Generic public EOSIO actions from CLOAK tx
+
+## Code conventions
+
+- All code, logs, comments in **English**
+- English-only UI (no i18n)
+- First line of every new/modified code file: repo-relative path comment (see `frontend-engineering-partner.mdc`)
+- **Hyphens only:** ASCII `-`; never em dash in copy, strings, comments, or rules
+- No trivial helper wrappers; inline obvious one-liners

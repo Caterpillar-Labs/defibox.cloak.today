@@ -13,3 +13,7 @@ pnpm-debug.log*
 coverage/
 .idea/
 .vscode/
+
+# temporary multi-worker feature prompts (see .cursor/feature-prompts/README.md)
+.cursor/feature-prompts/*
+!.cursor/feature-prompts/README.md
