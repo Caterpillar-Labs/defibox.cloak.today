@@ -10,6 +10,9 @@ export type MessageKey =
   | "wallet.refreshBalances"
   | "wallet.disconnect"
   | "wallet.working"
+  | "wallet.notRunning"
+  | "wallet.connectionClosed"
+  | "wallet.loginDeclined"
   | "swap.title"
   | "swap.refreshMarkets"
   | "swap.loading"
@@ -63,6 +66,9 @@ const en: MessageCatalog = {
   "wallet.refreshBalances": "Refresh balances",
   "wallet.disconnect": "Disconnect",
   "wallet.working": "Working...",
+  "wallet.notRunning": "CLOAK wallet not running",
+  "wallet.connectionClosed": "CLOAK wallet connection closed",
+  "wallet.loginDeclined": "Login declined by wallet",
   "swap.title": "Swap",
   "swap.refreshMarkets": "Refresh markets",
   "swap.loading": "Loading...",
@@ -115,6 +121,9 @@ const zh: MessageCatalog = {
   "wallet.refreshBalances": "刷新余额",
   "wallet.disconnect": "断开连接",
   "wallet.working": "处理中...",
+  "wallet.notRunning": "CLOAK 钱包未运行",
+  "wallet.connectionClosed": "CLOAK 钱包连接已关闭",
+  "wallet.loginDeclined": "钱包拒绝了登录",
   "swap.title": "兑换",
   "swap.refreshMarkets": "刷新市场",
   "swap.loading": "加载中...",
@@ -167,6 +176,9 @@ const ko: MessageCatalog = {
   "wallet.refreshBalances": "잔액 새로고침",
   "wallet.disconnect": "연결 해제",
   "wallet.working": "처리 중...",
+  "wallet.notRunning": "CLOAK 지갑이 실행되지 않음",
+  "wallet.connectionClosed": "CLOAK 지갑 연결이 종료됨",
+  "wallet.loginDeclined": "지갑에서 로그인이 거부됨",
   "swap.title": "스왑",
   "swap.refreshMarkets": "마켓 새로고침",
   "swap.loading": "로딩 중...",
@@ -219,6 +231,9 @@ const ru: MessageCatalog = {
   "wallet.refreshBalances": "Обновить балансы",
   "wallet.disconnect": "Отключить",
   "wallet.working": "Обработка...",
+  "wallet.notRunning": "Кошелек CLOAK не запущен",
+  "wallet.connectionClosed": "Соединение с кошельком CLOAK закрыто",
+  "wallet.loginDeclined": "Вход отклонен кошельком",
   "swap.title": "Обмен",
   "swap.refreshMarkets": "Обновить рынки",
   "swap.loading": "Загрузка...",

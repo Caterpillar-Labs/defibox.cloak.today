@@ -1,15 +1,54 @@
+// src/lib/zeos.ts
 import ZSession from "zeos-link";
 import type { BalancesResult, TransactResult, ZAction } from "zeos-link";
 import { APP_CONFIG } from "../config";
-import { formatAsset } from "./eosioAsset";
 import type { QuoteResult } from "./defibox";
+import { formatAsset } from "./eosioAsset";
+import type { MessageKey } from "./i18n/messages";
 
 type ZSessionLike = InstanceType<typeof ZSession>;
+
+const WALLET_CONNECTION_ERROR_PATTERNS = [
+  /websocket/i,
+  /econnrefused/i,
+  /connection refused/i,
+  /failed to connect/i,
+  /could not connect/i,
+];
 
 export type WalletState = {
   session: ZSessionLike | null;
   handle: string | null;
 };
+
+function extractErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "";
+  }
+}
+
+export function resolveWalletErrorKey(error: unknown): MessageKey | null {
+  const normalized = extractErrorMessage(error).trim().toLowerCase();
+  if (!normalized) return null;
+
+  if (WALLET_CONNECTION_ERROR_PATTERNS.some((pattern) => pattern.test(normalized))) {
+    return "wallet.notRunning";
+  }
+
+  if (normalized.includes("login declined")) {
+    return "wallet.loginDeclined";
+  }
+
+  if (normalized.includes("connection closed") || normalized.includes("link connection closed")) {
+    return "wallet.connectionClosed";
+  }
+
+  return null;
+}
 
 export async function connectCloakWallet(onClose?: () => void): Promise<WalletState> {
   const session = new ZSession(APP_CONFIG.zeosLinkUrl);

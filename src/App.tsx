@@ -3,7 +3,15 @@ import { APP_CONFIG } from "./config";
 import { fetchDefiboxConfig, fetchDefiboxPairs } from "./lib/chainApi";
 import { getFeeBps, isTradablePair, parsePair, quoteDirectSwap, type DefiboxConfigRow, type PairSide, type ParsedPair, type QuoteResult } from "./lib/defibox";
 import { compactAsset, parseInputAmountToUnits, unitsToHumanTrimmed } from "./lib/eosioAsset";
-import { buildSwapZActions, connectCloakWallet, disconnectCloakWallet, refreshAllBalances, submitSwap, type WalletState } from "./lib/zeos";
+import {
+  buildSwapZActions,
+  connectCloakWallet,
+  disconnectCloakWallet,
+  refreshAllBalances,
+  resolveWalletErrorKey,
+  submitSwap,
+  type WalletState,
+} from "./lib/zeos";
 import { findBalanceInUnknownPayload } from "./lib/balances";
 import {
   collectTradableTokens,
@@ -143,13 +151,13 @@ export default function App() {
         setWallet({ session: null, handle: null });
         setBalancesPayload(null);
         setTxResult(null);
-        setWalletError("ZEOS Link connection closed.");
+        setWalletError(t("wallet.connectionClosed"));
       });
       setWallet(connected);
       const balances = await refreshAllBalances(connected.session!);
       setBalancesPayload(balances);
     } catch (e) {
-      setWalletError(toErrorMessage(e));
+      setWalletError(formatWalletError(e, t));
     } finally {
       setWalletBusy(false);
     }
@@ -163,7 +171,7 @@ export default function App() {
       const balances = await refreshAllBalances(wallet.session);
       setBalancesPayload(balances);
     } catch (e) {
-      setWalletError(toErrorMessage(e));
+      setWalletError(formatWalletError(e, t));
     } finally {
       setWalletBusy(false);
     }
@@ -424,5 +432,10 @@ function toErrorMessage(error: unknown): string {
   } catch {
     return "Unknown error";
   }
+}
+
+function formatWalletError(error: unknown, translate: (key: MessageKey) => string): string {
+  const key = resolveWalletErrorKey(error);
+  return key ? translate(key) : toErrorMessage(error);
 }
 
