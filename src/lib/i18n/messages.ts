@@ -32,6 +32,7 @@ export type MessageKey =
   | "details.bps"
   | "details.memoPlaceholder"
   | "token.selectToken"
+  | "token.searchPlaceholder"
   | "token.noTokens"
   | "token.close"
   | "token.amountPlaceholder"
@@ -84,6 +85,7 @@ const en: MessageCatalog = {
   "details.bps": "bps",
   "details.memoPlaceholder": "swap,<min_out_units>,<pair_id>",
   "token.selectToken": "Select token",
+  "token.searchPlaceholder": "Search by symbol or contract...",
   "token.noTokens": "No tokens found.",
   "token.close": "Close token selector",
   "token.amountPlaceholder": "Please enter amount",
@@ -135,6 +137,7 @@ const zh: MessageCatalog = {
   "details.bps": "bps",
   "details.memoPlaceholder": "swap,<min_out_units>,<pair_id>",
   "token.selectToken": "选择代币",
+  "token.searchPlaceholder": "按符号或合约搜索...",
   "token.noTokens": "未找到代币。",
   "token.close": "关闭代币选择器",
   "token.amountPlaceholder": "请输入数量",
@@ -186,6 +189,7 @@ const ko: MessageCatalog = {
   "details.bps": "bps",
   "details.memoPlaceholder": "swap,<min_out_units>,<pair_id>",
   "token.selectToken": "토큰 선택",
+  "token.searchPlaceholder": "심볼 또는 컨트랙트로 검색...",
   "token.noTokens": "토큰을 찾을 수 없습니다.",
   "token.close": "토큰 선택기 닫기",
   "token.amountPlaceholder": "수량을 입력하세요",
@@ -237,6 +241,7 @@ const ru: MessageCatalog = {
   "details.bps": "bps",
   "details.memoPlaceholder": "swap,<min_out_units>,<pair_id>",
   "token.selectToken": "Выбрать токен",
+  "token.searchPlaceholder": "Поиск по символу или контракту...",
   "token.noTokens": "Токены не найдены.",
   "token.close": "Закрыть выбор токена",
   "token.amountPlaceholder": "Введите сумму",

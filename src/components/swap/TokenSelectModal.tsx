@@ -1,8 +1,9 @@
 // src/components/swap/TokenSelectModal.tsx
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { compactAsset } from "../../lib/eosioAsset";
 import { lockBodyScroll, unlockBodyScroll } from "../../lib/bodyScrollLock";
+import { filterSwapTokens } from "../../lib/tokenSearch";
 import { tokenKey, type SwapToken } from "../../lib/swapTokens";
 import { useLanguage } from "../../providers/LanguageProvider";
 import { Skeleton } from "../Skeleton";
@@ -26,12 +27,22 @@ export function TokenSelectModal({
   onSelect,
 }: TokenSelectModalProps) {
   const { t } = useLanguage();
+  const [searchTerm, setSearchTerm] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const filteredTokens = useMemo(() => filterSwapTokens(tokens, searchTerm), [tokens, searchTerm]);
 
   useEffect(() => {
     lockBodyScroll();
     return () => {
       unlockBodyScroll();
     };
+  }, []);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
@@ -60,11 +71,23 @@ export function TokenSelectModal({
           </button>
         </div>
 
+        <div className="tokenModalSearchWrap">
+          <input
+            ref={searchInputRef}
+            type="search"
+            className="tokenModalSearch"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder={t("token.searchPlaceholder")}
+            aria-label={t("token.searchPlaceholder")}
+          />
+        </div>
+
         <div className="tokenModalList" role="listbox">
-          {tokens.length === 0 ? (
+          {filteredTokens.length === 0 ? (
             <div className="tokenModalEmpty">{t("token.noTokens")}</div>
           ) : (
-            tokens.map((token) => {
+            filteredTokens.map((token) => {
               const key = tokenKey(token);
               const isSelected = key === selectedKey;
               const balance = balancesByKey.get(key) ?? null;
