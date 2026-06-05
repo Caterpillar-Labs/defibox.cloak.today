@@ -384,6 +384,31 @@ h2 {
   transform: translateY(-50%);
 }
 
+.heroControlTooltip::after,
+.hero-language-option-tooltip::after {
+  content: "";
+  position: absolute;
+  border-style: solid;
+  pointer-events: none;
+}
+
+.heroControlTooltip:not(.is-right)::after {
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px 6px 0;
+  border-color: var(--bg-panel) transparent transparent;
+}
+
+.heroControlTooltip.is-right::after,
+.hero-language-option-tooltip::after {
+  top: 50%;
+  left: -6px;
+  transform: translateY(-50%);
+  border-width: 6px 6px 6px 0;
+  border-color: transparent var(--bg-panel) transparent transparent;
+}
+
 .heroAside .hero-language-selector.is-open .cloak-dropdown-trigger {
   border-color: var(--border-strong);
   background: var(--bg-surface-strong);
