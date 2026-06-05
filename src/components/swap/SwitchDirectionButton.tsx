@@ -1,0 +1,26 @@
+// src/components/swap/SwitchDirectionButton.tsx
+import { useLanguage } from "../../providers/LanguageProvider";
+
+type SwitchDirectionButtonProps = {
+  onClick: () => void;
+  disabled?: boolean;
+};
+
+export function SwitchDirectionButton({ onClick, disabled = false }: SwitchDirectionButtonProps) {
+  const { t } = useLanguage();
+
+  return (
+    <button type="button" className="switchButton" onClick={onClick} aria-label={t("switchDirection.aria")} disabled={disabled}>
+      <svg viewBox="0 0 1134 1024" aria-hidden="true" className="switchButtonIcon">
+        <path
+          className="switchButtonIconAccent"
+          d="M340.22673 7.560295a105.004102 105.004102 0 0 0-105.004102 105.004102v554.001641L177.680381 609.02379a104.584085 104.584085 0 0 0-146.585726 0A102.484003 102.484003 0 0 0 0.013441 684.206727 107.104184 107.104184 0 0 0 28.994573 756.029532l237.309269 236.889254a115.924528 115.924528 0 0 0 31.501231 21.420837h5.460213a100.803938 100.803938 0 0 0 36.541428 7.140279A97.863823 97.863823 0 0 0 378.028207 1016.439705h4.200164a105.004102 105.004102 0 0 0 54.182116-53.342084v-4.200164a97.443806 97.443806 0 0 0 7.560296-38.64151V112.564397A105.004102 105.004102 0 0 0 340.22673 7.560295z"
+        />
+        <path
+          className="switchButtonIconMain"
+          d="M1104.236574 267.130435L867.347321 31.081214a96.603774 96.603774 0 0 0-32.76128-22.260869h-4.62018a97.443806 97.443806 0 0 0-71.40279 0L751.842809 8.400328a106.684167 106.684167 0 0 0-56.702215 57.962264 100.383921 100.383921 0 0 0-7.560295 38.64151v806.011485a105.004102 105.004102 0 1 0 210.008203 0V357.433962l57.962264 57.542248a107.104184 107.104184 0 0 0 147.845775 0A102.484003 102.484003 0 0 0 1134.057739 341.053322a104.164069 104.164069 0 0 0-29.821165-73.922887z"
+        />
+      </svg>
+    </button>
+  );
+}

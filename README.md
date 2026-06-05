@@ -270,9 +270,11 @@ src/
     balances.ts          CLOAK balance parsing
     defibox.ts           Defibox table parsing and BigInt quote math
     eosioAsset.ts        EOSIO asset parsing/formatting helpers
-    chain.ts             get_table_rows helper
+    chainApi.ts          get_table_rows helper
     zeos.ts              zeos-link connect/balance/transact helpers
 ```
+
+Cursor agent rules and living project knowledge live under `.cursor/` (see `.cursor/knowledge/project.md` for architecture depth).
 
 ## Development commands
 

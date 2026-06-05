@@ -2,14 +2,37 @@ import { useEffect, useMemo, useState } from "react";
 import { APP_CONFIG } from "./config";
 import { fetchDefiboxConfig, fetchDefiboxPairs } from "./lib/chainApi";
 import { getFeeBps, isTradablePair, parsePair, quoteDirectSwap, type DefiboxConfigRow, type PairSide, type ParsedPair, type QuoteResult } from "./lib/defibox";
-import { compactAsset, decimalRatio, formatAsset, parseInputAmountToUnits, unitsToHumanTrimmed } from "./lib/eosioAsset";
+import { compactAsset, parseInputAmountToUnits, unitsToHumanTrimmed } from "./lib/eosioAsset";
 import { buildSwapZActions, connectCloakWallet, disconnectCloakWallet, refreshAllBalances, submitSwap, type WalletState } from "./lib/zeos";
 import { findBalanceInUnknownPayload } from "./lib/balances";
+import {
+  collectTradableTokens,
+  findPairForInputToken,
+  findPairForOutputToken,
+  resolveTokenByKey,
+  tokenKey,
+} from "./lib/swapTokens";
+import { AuditNotice } from "./components/AuditNotice";
 import { DefiboxLogo } from "./components/DefiboxLogo";
+import { LanguageSelector } from "./components/LanguageSelector";
+import { Skeleton } from "./components/Skeleton";
+import { SwapDetails } from "./components/swap/SwapDetails";
+import { SwapFormSkeleton } from "./components/SwapFormSkeleton";
+import { SwitchDirectionButton } from "./components/swap/SwitchDirectionButton";
+import { TokenAmountBox } from "./components/swap/TokenAmountBox";
+import { TokenOutputBox } from "./components/swap/TokenOutputBox";
+import { ThemeToggle } from "./components/ThemeToggle";
+import { ZactionsPreviewSkeleton } from "./components/ZactionsPreviewSkeleton";
+import type { MessageKey } from "./lib/i18n/messages";
+import { useLanguage } from "./providers/LanguageProvider";
 
 type LoadState = "idle" | "loading" | "ready" | "error";
 
+const TX_SUCCESS = "__tx_success__";
+const TX_FAIL_PREFIX = "__tx_fail__";
+
 export default function App() {
+  const { t } = useLanguage();
   const [loadState, setLoadState] = useState<LoadState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<DefiboxConfigRow | null>(null);
@@ -24,7 +47,6 @@ export default function App() {
   const [balancesPayload, setBalancesPayload] = useState<unknown>(null);
   const [swapBusy, setSwapBusy] = useState(false);
   const [txResult, setTxResult] = useState<string | null>(null);
-
   async function loadMarkets() {
     setLoadState("loading");
     setError(null);
@@ -49,6 +71,7 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const tradableTokens = useMemo(() => collectTradableTokens(pairs), [pairs]);
   const selectedPair = useMemo(() => pairs.find((pair) => pair.id === selectedPairId) ?? null, [pairs, selectedPairId]);
   const feeBps = useMemo(() => getFeeBps(config), [config]);
   const inputToken = selectedPair ? (inputSide === 0 ? selectedPair.token0 : selectedPair.token1) : null;
@@ -97,6 +120,20 @@ export default function App() {
     if (!balancesPayload || !outputToken) return null;
     return findBalanceInUnknownPayload(balancesPayload, outputToken);
   }, [balancesPayload, outputToken]);
+
+  const balancesByTokenKey = useMemo(() => {
+    const map = new Map<string, bigint | null>();
+    for (const token of tradableTokens) {
+      map.set(
+        tokenKey(token),
+        balancesPayload ? findBalanceInUnknownPayload(balancesPayload, token) : null,
+      );
+    }
+    return map;
+  }, [balancesPayload, tradableTokens]);
+
+  const marketsLoading = loadState === "idle" || loadState === "loading";
+  const balancesLoading = walletBusy && Boolean(wallet.session);
 
   async function connectWallet() {
     setWalletBusy(true);
@@ -155,6 +192,30 @@ export default function App() {
     setTxResult(null);
   }
 
+  function selectPaymentToken(key: string) {
+    const token = resolveTokenByKey(tradableTokens, key);
+    if (!token) return;
+
+    const match = findPairForInputToken(pairs, token, outputToken);
+    if (!match) return;
+
+    setSelectedPairId(match.pair.id);
+    setInputSide(match.inputSide);
+    setTxResult(null);
+  }
+
+  function selectReceivedToken(key: string) {
+    const token = resolveTokenByKey(tradableTokens, key);
+    if (!token) return;
+
+    const match = findPairForOutputToken(pairs, token, inputToken);
+    if (!match) return;
+
+    setSelectedPairId(match.pair.id);
+    setInputSide(match.inputSide);
+    setTxResult(null);
+  }
+
   async function executeSwap() {
     if (!wallet.session || !quote || !selectedPair) return;
     setSwapBusy(true);
@@ -183,13 +244,13 @@ export default function App() {
       const result = await submitSwap(wallet.session, zactions);
 
       if (result.status === "success") {
-        setTxResult("Swap submitted successfully.");
+        setTxResult(TX_SUCCESS);
         setTimeout(() => void refreshBalances(), 6000);
       } else {
         throw new Error(toErrorMessage(result.error ?? result.detail ?? result));
       }
     } catch (e) {
-      setTxResult(`Swap failed: ${toErrorMessage(e)}`);
+      setTxResult(`${TX_FAIL_PREFIX}${toErrorMessage(e)}`);
     } finally {
       setSwapBusy(false);
     }
@@ -198,159 +259,141 @@ export default function App() {
   return (
     <main className="page">
       <section className="hero">
-        <div>
+        <div className="heroContent">
           <h1>
-            <DefiboxLogo
-              width={64}
-              style={{ display: "inline-block", verticalAlign: "middle" }}
-            />
-            Defibox CLOAKed Swap
+            <DefiboxLogo width={64} />
+            <span>{t("hero.title")}</span>
           </h1>
-          <p className="subtle">Direct-pair swaps through <code>swap.defi</code> with full privacy. Because #PrivacyMatters.</p>
+          <p className="subtle">{t("hero.subtitle")}</p>
         </div>
-        <div className="walletBox">
+        <div className="heroAside">
+          <div className="heroControls">
+            <ThemeToggle />
+            <LanguageSelector />
+          </div>
+          <div className="walletBox">
           <div className="walletStatus">
             <span className={wallet.session ? "dot ok" : "dot"} />
-            {wallet.session ? `Connected: ${wallet.handle ?? "CLOAK wallet"}` : "Wallet not connected"}
+            {walletBusy && !wallet.session ? (
+              <Skeleton width={180} height={14} rounded="sm" />
+            ) : wallet.session ? (
+              t("wallet.connected", { handle: wallet.handle ?? "CLOAK wallet" })
+            ) : (
+              t("wallet.notConnected")
+            )}
           </div>
-          <button className="secondary" disabled={walletBusy} onClick={wallet.session ? refreshBalances : connectWallet}>
-            {walletBusy ? "Working..." : wallet.session ? "Refresh balances" : "Connect CLOAK"}
+          <button className={`secondary${walletBusy ? " is-loading" : ""}`} disabled={walletBusy} onClick={wallet.session ? refreshBalances : connectWallet}>
+            {walletBusy ? t("wallet.working") : wallet.session ? t("wallet.refreshBalances") : t("wallet.connect")}
           </button>
           {wallet.session && (
             <button className="secondary danger" disabled={walletBusy || swapBusy} onClick={disconnectWallet}>
-              Disconnect
+              {t("wallet.disconnect")}
             </button>
           )}
           {walletError && <p className="errorText">{walletError}</p>}
+          </div>
         </div>
       </section>
 
-      <section className="panel">
+      <div className="swapLayout">
+      <section className="panel swapPanel">
         <div className="panelHeader">
-          <strong>Swap</strong>
-          <button className="ghost" onClick={loadMarkets} disabled={loadState === "loading"}>
-            {loadState === "loading" ? "Loading..." : "Refresh markets"}
+          <strong>{t("swap.title")}</strong>
+          <button className={`ghost${marketsLoading ? " is-loading" : ""}`} onClick={loadMarkets} disabled={marketsLoading}>
+            {marketsLoading ? t("swap.loading") : t("swap.refreshMarkets")}
           </button>
         </div>
 
         {error && <div className="notice error">{error}</div>}
 
-        <label className="fieldLabel">Market</label>
-        <select className="select" value={selectedPairId} onChange={(e) => setSelectedPairId(e.target.value)}>
-          {pairs.map((pair) => (
-            <option key={pair.id} value={pair.id}>
-              #{pair.id} {pair.token0.code}/{pair.token1.code} · {pair.token0.contract}/{pair.token1.contract}
-            </option>
-          ))}
-        </select>
-
-        <div className="swapCard">
-          <TokenAmountBox
-            title="Payment"
-            token={inputToken}
-            amountText={inputAmountText}
-            setAmountText={setInputAmountText}
-            balance={inputBalance}
-          />
-          <button className="switchButton" onClick={switchSides} aria-label="Switch swap direction">
-            ⇅
-          </button>
-          <TokenOutputBox title="Received" token={outputToken} quote={quote} balance={outputBalance} />
-        </div>
-
-        <div className="details">
-          <div className="detailRow">
-            <span>Price</span>
-            <strong>{quote && inputToken && outputToken ? `1 ${inputToken.code} ≈ ${priceForOneInput(selectedPair, inputSide, feeBps)} ${outputToken.code}` : "-"}</strong>
-          </div>
-          <div className="detailRow">
-            <span>Pool depth</span>
-            <strong>{selectedPair ? depthLabel(selectedPair, inputSide) : "-"}</strong>
-          </div>
-          <div className="detailRow">
-            <span>Fee</span>
-            <strong>{feeBps.toString()} bps</strong>
-          </div>
-          <div className="detailRow">
-            <span>Min output memo units</span>
-            <strong>{quote ? quote.minOut.toString() : "-"}</strong>
-          </div>
-          <div className="detailRow">
-            <label htmlFor="slippage">Slippage protection</label>
-            <div className="slippageInput">
-              <input id="slippage" value={slippageBpsText} onChange={(e) => setSlippageBpsText(e.target.value)} inputMode="numeric" />
-              <span>bps</span>
+        {marketsLoading ? (
+          <SwapFormSkeleton />
+        ) : (
+          <>
+            <div className="swapCard">
+              <TokenAmountBox
+                title={t("swap.payment")}
+                token={inputToken}
+                tokens={tradableTokens}
+                amountText={inputAmountText}
+                setAmountText={setInputAmountText}
+                balance={inputBalance}
+                balancesByKey={balancesByTokenKey}
+                balanceLoading={balancesLoading}
+                disabled={swapBusy}
+                onSelectTokenKey={selectPaymentToken}
+              />
+              <SwitchDirectionButton onClick={switchSides} disabled={swapBusy} />
+              <TokenOutputBox
+                title={t("swap.received")}
+                token={outputToken}
+                tokens={tradableTokens}
+                quote={quote}
+                balance={outputBalance}
+                balancesByKey={balancesByTokenKey}
+                balanceLoading={balancesLoading}
+                quoteLoading={swapBusy}
+                disabled={swapBusy}
+                onSelectTokenKey={selectReceivedToken}
+              />
             </div>
-          </div>
-          <div className="memoBox">{quote ? quote.memo : "swap,<min_out_units>,<pair_id>"}</div>
-        </div>
 
-        {parsedInput.error && <div className="notice error">{parsedInput.error}</div>}
-        {slippageBps == null && <div className="notice error">Invalid slippage bps.</div>}
-        {txResult && <div className={txResult.startsWith("Swap failed") ? "notice error" : "notice success"}>{txResult}</div>}
+            <SwapDetails
+              quote={quote}
+              selectedPair={selectedPair}
+              inputTokenCode={inputToken?.code ?? null}
+              outputTokenCode={outputToken?.code ?? null}
+              priceLabel={
+                quote && inputToken && outputToken
+                  ? `1 ${inputToken.code} ≈ ${priceForOneInput(selectedPair, inputSide, feeBps)} ${outputToken.code}`
+                  : "-"
+              }
+              depthLabel={selectedPair ? depthLabel(selectedPair, inputSide) : "-"}
+              feeBps={feeBps}
+              slippageBpsText={slippageBpsText}
+              onSlippageBpsTextChange={setSlippageBpsText}
+            />
 
-        <button className="primary" disabled={!wallet.session || !quote || swapBusy || Boolean(parsedInput.error) || slippageBps == null} onClick={executeSwap}>
-          {swapBusy ? "Submitting..." : wallet.session ? "Swap with CLOAK" : "Connect wallet first"}
-        </button>
+            {parsedInput.error && <div className="notice error">{parsedInput.error}</div>}
+            {slippageBps == null && <div className="notice error">{t("swap.invalidSlippage")}</div>}
+            {txResult && (
+              <div className={txResult.startsWith(TX_FAIL_PREFIX) ? "notice error" : "notice success"}>
+                {formatTxResult(txResult, t)}
+              </div>
+            )}
+
+            <button
+              className={`primary swapPrimary${swapBusy ? " is-loading" : ""}`}
+              disabled={!wallet.session || !quote || swapBusy || Boolean(parsedInput.error) || slippageBps == null}
+              onClick={executeSwap}>
+              {swapBusy ? t("swap.submitting") : wallet.session ? t("swap.submit") : t("swap.connectFirst")}
+            </button>
+
+            <AuditNotice />
+          </>
+        )}
       </section>
 
       <section className="debugPanel">
-        <h2>Current zactions preview</h2>
-        <pre>{quote ? JSON.stringify(buildSwapZActions({ quote, amountIn: parsedInput.amountIn }), null, 2) : "Enter an amount to build zactions."}</pre>
+        <h2>{t("zactions.title")}</h2>
+        {marketsLoading ? (
+          <ZactionsPreviewSkeleton />
+        ) : (
+          <pre>{quote ? JSON.stringify(buildSwapZActions({ quote, amountIn: parsedInput.amountIn }), null, 2) : t("zactions.empty")}</pre>
+        )}
       </section>
+      </div>
     </main>
   );
 }
 
-function TokenAmountBox(props: {
-  title: string;
-  token: ReturnType<typeof nullableToken>;
-  amountText: string;
-  setAmountText: (value: string) => void;
-  balance: bigint | null;
-}) {
-  const { title, token, amountText, setAmountText, balance } = props;
-  return (
-    <div className="tokenBox">
-      <div className="tokenBoxTop">
-        <span>{title}</span>
-        <span>{token && balance != null ? `Bal: ${compactAsset(balance, token.precision, token.code)}` : "Bal: -"}</span>
-      </div>
-      <div className="tokenMain">
-        <TokenBadge token={token} />
-        <input className="amountInput" value={amountText} onChange={(e) => setAmountText(e.target.value)} inputMode="decimal" placeholder="0" />
-      </div>
-    </div>
-  );
-}
-
-function TokenOutputBox(props: { title: string; token: ReturnType<typeof nullableToken>; quote: QuoteResult | null; balance: bigint | null }) {
-  const { title, token, quote, balance } = props;
-  const amount = quote && token ? unitsToHumanTrimmed(quote.amountOut, token.precision, 8) : "0";
-  return (
-    <div className="tokenBox">
-      <div className="tokenBoxTop">
-        <span>{title}</span>
-        <span>{token && balance != null ? `Bal: ${compactAsset(balance, token.precision, token.code)}` : "Bal: -"}</span>
-      </div>
-      <div className="tokenMain">
-        <TokenBadge token={token} />
-        <div className="outputAmount">{amount}</div>
-      </div>
-    </div>
-  );
-}
-
-function TokenBadge({ token }: { token: ReturnType<typeof nullableToken> }) {
-  return (
-    <div className="tokenBadge">
-      <span className="tokenIcon">{token?.code.slice(0, 1) ?? "?"}</span>
-      <span>
-        <strong>{token?.code ?? "-"}</strong>
-        <small>{token?.contract ?? "-"}</small>
-      </span>
-    </div>
-  );
+function formatTxResult(
+  txResult: string,
+  t: (key: MessageKey, vars?: Record<string, string>) => string,
+): string {
+  if (txResult === TX_SUCCESS) return t("swap.success");
+  if (txResult.startsWith(TX_FAIL_PREFIX)) return `${t("swap.failedPrefix")}${txResult.slice(TX_FAIL_PREFIX.length)}`;
+  return txResult;
 }
 
 function priceForOneInput(pair: ParsedPair | null, inputSide: PairSide, feeBps: bigint): string {
@@ -383,6 +426,3 @@ function toErrorMessage(error: unknown): string {
   }
 }
 
-function nullableToken() {
-  return null as null | ParsedPair["token0"];
-}
