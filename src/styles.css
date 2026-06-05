@@ -313,6 +313,29 @@ h2 {
   flex-shrink: 0;
 }
 
+.languageSelectorWrap .languageSelectorTooltip {
+  z-index: 10003;
+}
+
+.languageSelectorWrap .languageSelectorTooltip.is-right {
+  bottom: auto;
+  top: 50%;
+  left: calc(100% + 10px);
+  transform: translateY(-50%) translateX(-4px);
+}
+
+.languageSelectorWrap .languageSelectorTooltip.is-right.is-visible {
+  transform: translateY(-50%) translateX(0);
+}
+
+.languageSelectorWrap .languageSelectorTooltip {
+  transition: opacity 0.18s ease;
+}
+
+.languageSelectorWrap .languageSelectorTooltip.is-visible {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
 .heroAside .hero-language-selector.cloak-dropdown {
   flex-shrink: 0;
 }
@@ -335,6 +358,30 @@ h2 {
   width: 44px;
   min-width: 44px;
   box-sizing: border-box;
+  overflow: visible;
+}
+
+.heroAside .hero-language-selector.cloak-dropdown.is-open {
+  overflow: visible;
+}
+
+.hero-language-option-tooltip {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  z-index: 10003;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dark);
+  box-shadow: var(--shadow-panel);
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateY(-50%);
 }
 
 .heroAside .hero-language-selector.is-open .cloak-dropdown-trigger {

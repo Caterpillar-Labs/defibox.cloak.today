@@ -35,4 +35,5 @@ export interface DropdownProps {
   onGroupMouseEnter?: () => void;
   onGroupMouseLeave?: () => void;
   enableSearch?: boolean;
+  onOptionHover?: (option: DropdownOption | null) => void;
 }

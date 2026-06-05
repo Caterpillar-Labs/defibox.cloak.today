@@ -31,9 +31,11 @@ export function Dropdown({
   onGroupMouseEnter,
   onGroupMouseLeave,
   enableSearch = true,
+  onOptionHover,
 }: DropdownProps) {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [hoveredHeroOptionValue, setHoveredHeroOptionValue] = useState<string | null>(null);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({
     top: 0,
@@ -83,6 +85,10 @@ export function Dropdown({
   useEffect(() => {
     if (!isOpen) {
       setSearchTerm("");
+      if (className.includes("hero-language-selector")) {
+        setHoveredHeroOptionValue(null);
+        onOptionHover?.(null);
+      }
       if (buttonRef.current && !isFormLikeDropdown) {
         buttonRef.current.blur();
         buttonRef.current.style.borderColor = "var(--dropdown-border)";
@@ -92,7 +98,7 @@ export function Dropdown({
         searchInputRef.current?.focus();
       }, 100);
     }
-  }, [isOpen, enableSearch, isFormLikeDropdown]);
+  }, [isOpen, enableSearch, isFormLikeDropdown, className, onOptionHover]);
 
   useEffect(() => {
     if (isOpen && buttonRef.current) {
@@ -304,7 +310,9 @@ export function Dropdown({
         width: defaultWidth,
         height: height || style?.height,
         ...style,
-      }}>
+      }}
+      onMouseEnter={isHeroLanguageSelector ? () => onGroupMouseEnter?.() : undefined}
+      onMouseLeave={isHeroLanguageSelector ? () => onGroupMouseLeave?.() : undefined}>
       <button
         ref={buttonRef}
         type="button"
@@ -388,6 +396,10 @@ export function Dropdown({
         }}
         onMouseEnter={(e) => {
           onGroupMouseEnter?.();
+          if (isHeroLanguageSelector && isOpen) {
+            setHoveredHeroOptionValue(null);
+            onOptionHover?.(null);
+          }
           if (!disabled && !isOpen && isHeroLanguageSelector) {
             e.currentTarget.style.borderColor = "var(--border-strong)";
             e.currentTarget.style.background = "var(--bg-surface-strong)";
@@ -543,8 +555,12 @@ export function Dropdown({
                 borderRadius: "0.875rem",
                 boxShadow: "var(--dropdown-shadow)",
                 zIndex: isLanguageSelector ? 10002 : 10000,
-                overflowY: isLanguageSelector && !hasScrollbar && !isMobileLanguageSelector ? "hidden" : "auto",
-                overflowX: "hidden",
+                overflowY: isHeroLanguageSelector
+                  ? "visible"
+                  : isLanguageSelector && !hasScrollbar && !isMobileLanguageSelector
+                    ? "hidden"
+                    : "auto",
+                overflowX: isHeroLanguageSelector ? "visible" : "hidden",
                 animation: "fadeInZoom 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards",
                 padding: isHeroLanguageSelector ? "4px" : "0.5rem",
                 scrollbarWidth: isLanguageSelector && !hasScrollbar && !isMobileLanguageSelector ? "none" : "auto",
@@ -608,7 +624,7 @@ export function Dropdown({
                     aria-selected={value === option.value}
                     onClick={() => !option.disabled && handleSelect(option.value)}
                     disabled={option.disabled}
-                    title={isLanguageSelector && typeof option.label === "string" ? option.label : undefined}
+                    title={isLanguageSelector && !isHeroLanguageSelector && typeof option.label === "string" ? option.label : undefined}
                     style={{
                       width: "100%",
                       padding: isHeroLanguageSelector
@@ -639,6 +655,10 @@ export function Dropdown({
                       boxSizing: "border-box",
                     }}
                     onMouseEnter={(e) => {
+                      if (isHeroLanguageSelector) {
+                        setHoveredHeroOptionValue(option.value);
+                        onOptionHover?.(option);
+                      }
                       if (!option.disabled && value !== option.value) {
                         e.currentTarget.style.background = "var(--dropdown-option-hover-bg)";
                         e.currentTarget.style.borderColor = "transparent";
@@ -676,6 +696,13 @@ export function Dropdown({
                         </span>
                       )}
                     </div>
+                    {isHeroLanguageSelector &&
+                      hoveredHeroOptionValue === option.value &&
+                      typeof option.label === "string" && (
+                        <span className="hero-language-option-tooltip" role="tooltip">
+                          {option.label}
+                        </span>
+                      )}
                   </button>
                 ))
               )}
