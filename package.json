@@ -9,7 +9,9 @@
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {
+    "@caterpillar-labs/zeos-zfilesystem": "^0.1.1",
     "@vitejs/plugin-basic-ssl": "^2.1.0",
+    "@wharfkit/antelope": "^1.2.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "zeos-link": "^0.2.0"

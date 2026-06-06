@@ -777,6 +777,16 @@ h2 {
   min-width: 0;
 }
 
+.tokenIconShell {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.tokenIconPreload {
+  display: none;
+}
+
 .tokenIconImage,
 .tokenIconFallback {
   display: inline-grid;
