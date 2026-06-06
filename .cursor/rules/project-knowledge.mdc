@@ -7,7 +7,7 @@ alwaysApply: true
 
 # Defibox CLOAK Swap Demo - Project Knowledge
 
-> **Last updated:** 2026-06-05 (initial `.cursor/` setup)
+> **Last updated:** 2026-06-06 (zeos-zfilesystem token icons)
 
 ## Multi-thread feature workflow
 
@@ -57,7 +57,7 @@ alwaysApply: true
 
 ### Key dependencies
 
-`react`, `react-dom`, `zeos-link`, `vite`, `typescript`
+`react`, `react-dom`, `zeos-link`, `@caterpillar-labs/zeos-zfilesystem`, `@wharfkit/antelope`, `vite`, `typescript`
 
 ## Directory layout
 
@@ -71,12 +71,15 @@ src/
   components/dropdown/  Dropdown.tsx (searchable Cloak select)
   types/dropdownTypes.ts
   constants/connectedInputGroupConstants.ts
+  providers/            React context (ChainMetadataProvider, LanguageProvider)
   lib/                  Business logic (no React)
     chainApi.ts         Defibox table reads
+    chainMetadata.ts    Alias networks/tokens + zfilesystem icon decode
     defibox.ts          Pair parsing, BigInt quotes
     eosioAsset.ts       Asset helpers
     balances.ts         CLOAK balance parsing
     zeos.ts             Wallet connect + swap zactions
+    tokenIcon.ts        Fallback colors + static icon paths
 ```
 
 ## Architecture rules

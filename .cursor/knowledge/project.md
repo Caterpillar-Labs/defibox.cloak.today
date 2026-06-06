@@ -1,6 +1,6 @@
 # Defibox CLOAK Swap Demo - Project Knowledge
 
-> **Last updated:** 2026-06-05 (initial `.cursor/` setup)
+> **Last updated:** 2026-06-06 (zeos-zfilesystem token icons)
 
 ## Multi-thread feature workflow
 
@@ -59,7 +59,7 @@
 
 ### Key dependencies
 
-`react`, `react-dom`, `zeos-link`, `vite`, `@vitejs/plugin-react`, `@vitejs/plugin-basic-ssl`, `typescript`
+`react`, `react-dom`, `zeos-link`, `@caterpillar-labs/zeos-zfilesystem`, `@wharfkit/antelope`, `vite`, `@vitejs/plugin-react`, `@vitejs/plugin-basic-ssl`, `typescript`
 
 ## Directory layout
 
@@ -77,12 +77,17 @@ src/
     dropdownTypes.ts    Dropdown option/props types
   constants/
     connectedInputGroupConstants.ts  Embedded input group colors (Dropdown)
+  providers/
+    ChainMetadataProvider.tsx  Alias networks/tokens discovery + token icon resolver
+    LanguageProvider.tsx
   lib/                  Business logic (no UI)
     chainApi.ts         Defibox table reads (config, pairs)
+    chainMetadata.ts    Alias `networks`/`tokens` reads + zfilesystem icon decode
     defibox.ts          Pair parsing, BigInt quote math, tradability
     eosioAsset.ts       EOSIO asset parse/format helpers
     balances.ts         CLOAK balance payload parsing
     zeos.ts             zeos-link connect, balances, swap zactions, transact
+    tokenIcon.ts        Fallback gradient colors + local static icon paths
     connectedInputGroupStyles.ts  Connected input group border styles (Dropdown)
 ```
 
@@ -118,7 +123,15 @@ No `services/`, `hooks/`, or `types/` folders yet. As the demo grows, prefer:
 | `VITE_PROTOCOL_CONTRACT`  | `zeosprotocol`       | CLOAK protocol                |
 | `VITE_VAULT_CONTRACT`     | `thezeosvault`       | CLOAK vault                   |
 | `VITE_ALIAS_AUTHORITY`    | `thezeosproxy@public`| Login alias authority         |
+| `VITE_ALIAS_CONTRACT`     | `thezeosproxy`       | Alias table scope (`networks`, `tokens`) |
 | `VITE_ZEOS_LINK_URL`      | `wss://127.0.0.1:9367` | ZEOS Link WebSocket        |
+
+### Token icons (zfilesystem demo)
+
+1. On app load, `chainMetadata.ts` reads `thezeosproxy::networks` and `thezeosproxy::tokens` via `@caterpillar-labs/zeos-zfilesystem` (`createFetchZfsChainClient`, `fetchAllTableRows`).
+2. `ChainMetadataProvider` exposes `resolveTokenIcon(symbol)` to UI components.
+3. Token `icon` fields may be HTTP URLs or `zfilesystem` asset URIs; URIs are decoded on-chain to blob URLs in `chainMetadata.ts`.
+4. `TokenIcon` falls back to local static assets (`tokenIcon.ts`) then gradient letter badges.
 
 ### Wallet flow
 
